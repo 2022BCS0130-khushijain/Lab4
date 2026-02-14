@@ -5,8 +5,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY model.joblib .
-COPY app.py .
+# COPY model.joblib .
+# COPY app.py .
+
+COPY . .
 
 EXPOSE 8000
 
