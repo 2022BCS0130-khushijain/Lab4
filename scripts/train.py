@@ -26,4 +26,13 @@ metrics = {
 with open("metrics.json", "w") as f:
     json.dump(metrics, f)
 
-print("Metrics:", metrics)
+accuracy = (preds == y_test).mean()
+precision = (preds[y_test == 1] == 1).mean()
+recall = (y_test[preds == 1] == 1).mean()
+
+# print("Metrics:", metrics)
+print("Name: Khushi Jain")
+print("Roll No: 2022BCS0130")
+print("Accuracy:", accuracy)
+print("Precision:", precision)
+print("Recall:", recall)
