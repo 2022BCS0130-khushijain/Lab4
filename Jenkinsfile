@@ -18,7 +18,7 @@ pipeline {
         stage('Train & Evaluate Model') {
             steps {
                 script {
-                    sh 'docker run --rm $DOCKER_IMAGE python train.py'
+                    sh 'docker run --rm $DOCKER_IMAGE python scripts/train.py'
                 }
             }
         }
