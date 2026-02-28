@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE = "khushijain191/wine-inference-api:v1"
+        IMAGE = "khushijain191/wine-inference-api:v2"
         CONTAINER = "wine_ci_test"
     }
 
@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh '''
                 docker rm -f $CONTAINER || true
-                docker run -d --name $CONTAINER $IMAGE
+                docker run -d -p 8000:8000 --name $CONTAINER $IMAGE
                 '''
             }
         }
@@ -29,7 +29,7 @@ pipeline {
                 echo "Waiting for API to start..."
 
                 for i in {1..30}; do
-                  if docker exec $CONTAINER curl -f -s http://localhost:8000/predict > /dev/null 2>&1; then
+                  if docker exec $CONTAINER curl -f -s http://localhost:8000/health > /dev/null; then
                     echo "API is ready"
                     exit 0
                   fi
@@ -53,9 +53,9 @@ pipeline {
                 -d @valid.json)
 
                 echo "Valid Response:"
-                echo $RESPONSE
+                echo "$RESPONSE"
 
-                echo $RESPONSE | grep prediction
+                echo "$RESPONSE" | grep prediction
                 '''
             }
         }
@@ -70,9 +70,9 @@ pipeline {
                 -d @invalid.json)
 
                 echo "Invalid Response:"
-                echo $RESPONSE
+                echo "$RESPONSE"
 
-                echo $RESPONSE | grep detail
+                echo "$RESPONSE" | grep detail
                 '''
             }
         }
