@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE = "khushijain191/wine-inference-api:v1"
+        CONTAINER = "wine_ci_test"
+    }
+
+    stages {
+
+        stage('Pull Image') {
+            steps {
+                sh 'docker pull $IMAGE'
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                sh '''
+                docker rm -f $CONTAINER || true
+                docker run -d -p 8002:8000 --name $CONTAINER $IMAGE
+                '''
+            }
+        }
+
+        stage('Wait for API Readiness') {
+            steps {
+                sh '''
+                for i in {1..20}; do
+                  if curl -s http://localhost:8002/docs > /dev/null; then
+                    echo "API is ready"
+                    exit 0
+                  fi
+                  sleep 2
+                done
+                echo "API did not start"
+                exit 1
+                '''
+            }
+        }
+
+        stage('Valid Inference Test') {
+            steps {
+                sh '''
+                RESPONSE=$(curl -s -X POST http://localhost:8002/predict \
+                -H "Content-Type: application/json" \
+                -d @valid.json)
+
+                echo "Valid Response:"
+                echo $RESPONSE
+
+                echo $RESPONSE | grep prediction
+                '''
+            }
+        }
+
+        stage('Invalid Input Test') {
+            steps {
+                sh '''
+                echo "Invalid Response:"
+                curl -s -X POST http://localhost:8002/predict \
+                -H "Content-Type: application/json" \
+                -d @invalid.json | grep detail
+                '''
+            }
+        }
+
+        stage('Stop Container') {
+            steps {
+                sh 'docker rm -f $CONTAINER'
+            }
+        }
+    }
+}
