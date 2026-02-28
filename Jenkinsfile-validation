@@ -26,14 +26,24 @@ pipeline {
         stage('Wait for API Readiness') {
             steps {
                 sh '''
-                for i in {1..20}; do
-                  if docker exec $CONTAINER curl -s http://localhost:8000/docs > /dev/null; then
-                    echo "API is ready"
+                echo "Waiting for API to start..."
+
+                for i in {1..30}; do
+                  if docker exec $CONTAINER curl -s http://localhost:8000/docs > /dev/null 2>&1; then
+                    echo "API running on port 8000"
                     exit 0
                   fi
+
+                  if docker exec $CONTAINER curl -s http://localhost:80/docs > /dev/null 2>&1; then
+                    echo "API running on port 80"
+                    exit 0
+                  fi
+
                   sleep 2
                 done
+
                 echo "API did not start"
+                docker logs $CONTAINER
                 exit 1
                 '''
             }
@@ -42,7 +52,12 @@ pipeline {
         stage('Valid Inference Test') {
             steps {
                 sh '''
+                echo "Sending valid inference request..."
+
                 RESPONSE=$(docker exec $CONTAINER curl -s -X POST http://localhost:8000/predict \
+                -H "Content-Type: application/json" \
+                -d @valid.json 2>/dev/null || \
+                docker exec $CONTAINER curl -s -X POST http://localhost:80/predict \
                 -H "Content-Type: application/json" \
                 -d @valid.json)
 
@@ -57,10 +72,19 @@ pipeline {
         stage('Invalid Input Test') {
             steps {
                 sh '''
-                echo "Invalid Response:"
-                docker exec $CONTAINER curl -s -X POST http://localhost:8000/predict \
+                echo "Sending invalid request..."
+
+                RESPONSE=$(docker exec $CONTAINER curl -s -X POST http://localhost:8000/predict \
                 -H "Content-Type: application/json" \
-                -d @invalid.json | grep detail
+                -d @invalid.json 2>/dev/null || \
+                docker exec $CONTAINER curl -s -X POST http://localhost:80/predict \
+                -H "Content-Type: application/json" \
+                -d @invalid.json)
+
+                echo "Invalid Response:"
+                echo $RESPONSE
+
+                echo $RESPONSE | grep detail
                 '''
             }
         }
@@ -69,6 +93,12 @@ pipeline {
             steps {
                 sh 'docker rm -f $CONTAINER'
             }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker rm -f $CONTAINER || true'
         }
     }
 }
