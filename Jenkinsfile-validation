@@ -29,16 +29,10 @@ pipeline {
                 echo "Waiting for API to start..."
 
                 for i in {1..30}; do
-                  if docker exec $CONTAINER curl -s http://localhost:8000/docs > /dev/null 2>&1; then
-                    echo "API running on port 8000"
+                  if docker exec $CONTAINER curl -f -s http://localhost:8000/predict > /dev/null 2>&1; then
+                    echo "API is ready"
                     exit 0
                   fi
-
-                  if docker exec $CONTAINER curl -s http://localhost:80/docs > /dev/null 2>&1; then
-                    echo "API running on port 80"
-                    exit 0
-                  fi
-
                   sleep 2
                 done
 
@@ -56,9 +50,6 @@ pipeline {
 
                 RESPONSE=$(docker exec $CONTAINER curl -s -X POST http://localhost:8000/predict \
                 -H "Content-Type: application/json" \
-                -d @valid.json 2>/dev/null || \
-                docker exec $CONTAINER curl -s -X POST http://localhost:80/predict \
-                -H "Content-Type: application/json" \
                 -d @valid.json)
 
                 echo "Valid Response:"
@@ -75,9 +66,6 @@ pipeline {
                 echo "Sending invalid request..."
 
                 RESPONSE=$(docker exec $CONTAINER curl -s -X POST http://localhost:8000/predict \
-                -H "Content-Type: application/json" \
-                -d @invalid.json 2>/dev/null || \
-                docker exec $CONTAINER curl -s -X POST http://localhost:80/predict \
                 -H "Content-Type: application/json" \
                 -d @invalid.json)
 
