@@ -24,27 +24,27 @@ pipeline {
         }
 
         stage('Wait for API Readiness') {
-            steps {
-                sh '''
-                echo "Waiting for API to start..."
-
-                i=0
-                while [ $i -lt 30 ]
-                do
-                  if curl -s http://localhost:8002/docs > /dev/null 2>&1; then
-                    echo "API is ready"
-                    exit 0
-                  fi
-                  sleep 2
-                  i=$((i+1))
-                done
-
-                echo "API did not start"
-                docker logs $CONTAINER
-                exit 1
-                '''
-            }
+        steps {
+            sh '''
+            echo "Waiting for API to start..."
+    
+            i=0
+            while [ $i -lt 30 ]
+            do
+              if curl -f -s http://localhost:8002/docs > /dev/null 2>&1; then
+                echo "API is ready"
+                exit 0
+              fi
+              sleep 2
+              i=$((i+1))
+            done
+    
+            echo "API did not start"
+            docker logs $CONTAINER
+            exit 1
+            '''
         }
+    }
 
         stage('Valid Inference Test') {
             steps {
